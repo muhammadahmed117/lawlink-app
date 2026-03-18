@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'help_support_screen.dart';
 
 const _bgColor = Color(0xFFF2F2F2);
 const _headerColor = Color(0xFF0D1B2A);
@@ -81,12 +82,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 18),
                   const _SectionTitle('ABOUT'),
                   const SizedBox(height: 10),
-                  const _SettingsCard(
+                  _SettingsCard(
                     children: [
                       _NavigationTile(
                         icon: Icons.help_outline,
                         iconColor: Color(0xFF4F5D75),
                         title: 'Help & Support',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const HelpSupportScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _DividerLine(),
                       _NavigationTile(
@@ -224,11 +232,13 @@ class _NavigationTile extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.title,
+    this.onTap,
   });
 
   final IconData icon;
   final Color iconColor;
   final String title;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +253,7 @@ class _NavigationTile extends StatelessWidget {
         ),
       ),
       trailing: const Icon(Icons.chevron_right, color: Color(0xFF9BA1AF)),
-      onTap: () {},
+      onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 1),
     );
   }
