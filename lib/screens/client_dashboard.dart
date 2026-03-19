@@ -253,9 +253,16 @@ List<_NotificationData> _buildInitialNotificationsFromAppointments() {
 }
 
 class ClientDashboard extends StatefulWidget {
-  const ClientDashboard({super.key, this.userName = 'Client'});
+  const ClientDashboard({
+    super.key,
+    this.userName = 'Client',
+    this.initialNotificationTitle,
+    this.initialNotificationMessage,
+  });
 
   final String userName;
+  final String? initialNotificationTitle;
+  final String? initialNotificationMessage;
 
   @override
   State<ClientDashboard> createState() => _ClientDashboardState();
@@ -272,6 +279,19 @@ class _ClientDashboardState extends State<ClientDashboard> {
   void initState() {
     super.initState();
     _notifications = _buildInitialNotificationsFromAppointments();
+    if (widget.initialNotificationTitle != null &&
+        widget.initialNotificationMessage != null) {
+      _notifications = [
+        _NotificationData(
+          title: widget.initialNotificationTitle!,
+          message: widget.initialNotificationMessage!,
+          time: 'Just now',
+          isAlert: true,
+          isRead: false,
+        ),
+        ..._notifications,
+      ];
+    }
     _welcomeTimer = Timer(const Duration(seconds: 10), () {
       if (!mounted) {
         return;
@@ -335,9 +355,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
         ? _topAdvocateSections
               .map((section) {
                 final List<_LawyerData> matchedAdvocates = section.advocates
-                    .where(
-                      (lawyer) => _matchesQuery(lawyer.name, query),
-                    )
+                    .where((lawyer) => _matchesQuery(lawyer.name, query))
                     .toList();
                 return _TopAdvocateSectionData(
                   title: section.title,
@@ -361,12 +379,12 @@ class _ClientDashboardState extends State<ClientDashboard> {
 
     final bool showTopLawyers = filteredTopSections.isNotEmpty;
     final bool hasResults =
-      filteredCategories.isNotEmpty ||
-      filteredAppointments.isNotEmpty ||
-      showTopLawyers;
+        filteredCategories.isNotEmpty ||
+        filteredAppointments.isNotEmpty ||
+        showTopLawyers;
     final int unreadAlertCount = _notifications
-      .where((notification) => notification.isAlert && !notification.isRead)
-      .length;
+        .where((notification) => notification.isAlert && !notification.isRead)
+        .length;
     final bool showCategories = filteredCategories.isNotEmpty;
     final bool showAppointments = filteredAppointments.isNotEmpty;
 
@@ -408,9 +426,8 @@ class _ClientDashboardState extends State<ClientDashboard> {
                   _markAllNotificationsRead();
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => NotificationsScreen(
-                        notifications: _notifications,
-                      ),
+                      builder: (_) =>
+                          _NotificationsScreen(notifications: _notifications),
                     ),
                   );
                 },
@@ -428,7 +445,8 @@ class _ClientDashboardState extends State<ClientDashboard> {
                     if (hasResults) ...[
                       if (showCategories)
                         _LegalCategoriesSection(categories: filteredCategories),
-                      if (showCategories && (showTopLawyers || showAppointments))
+                      if (showCategories &&
+                          (showTopLawyers || showAppointments))
                         const SizedBox(height: 22),
                       if (showTopLawyers)
                         _TopLawyersSection(
@@ -677,7 +695,7 @@ class _LegalCategoriesSection extends StatelessWidget {
                     : () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => TopAdvocatesViewAllScreen(
+                            builder: (_) => _TopAdvocatesViewAllScreen(
                               selectedSection: section,
                             ),
                           ),
@@ -708,10 +726,7 @@ class _LegalCategoriesSection extends StatelessWidget {
 }
 
 class _TopLawyersSection extends StatelessWidget {
-  const _TopLawyersSection({
-    required this.sections,
-    required this.isSearching,
-  });
+  const _TopLawyersSection({required this.sections, required this.isSearching});
 
   final List<_TopAdvocateSectionData> sections;
   final bool isSearching;
@@ -727,7 +742,8 @@ class _TopLawyersSection extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => LawyerProfileView(profile: _toLawyerProfile(lawyer)),
+              builder: (_) =>
+                  LawyerProfileView(profile: _toLawyerProfile(lawyer)),
             ),
           );
         },
@@ -794,7 +810,10 @@ class _TopLawyersSection extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           '${lawyer.rating.toStringAsFixed(1)} (${lawyer.reviews})',
-                          style: const TextStyle(color: _mutedText, fontSize: 16),
+                          style: const TextStyle(
+                            color: _mutedText,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -852,7 +871,7 @@ class _TopLawyersSection extends StatelessWidget {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const TopAdvocatesViewAllScreen(),
+                      builder: (_) => const _TopAdvocatesViewAllScreen(),
                     ),
                   );
                 },
@@ -872,7 +891,7 @@ class _TopLawyersSection extends StatelessWidget {
           itemCount: sections.length,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final section = sections[index];
             return Column(
@@ -898,17 +917,18 @@ class _TopLawyersSection extends StatelessWidget {
   }
 }
 
-class TopAdvocatesViewAllScreen extends StatefulWidget {
-  const TopAdvocatesViewAllScreen({super.key, this.selectedSection});
+class _TopAdvocatesViewAllScreen extends StatefulWidget {
+  const _TopAdvocatesViewAllScreen({this.selectedSection});
 
   final _TopAdvocateSectionData? selectedSection;
 
   @override
-  State<TopAdvocatesViewAllScreen> createState() =>
+  State<_TopAdvocatesViewAllScreen> createState() =>
       _TopAdvocatesViewAllScreenState();
 }
 
-class _TopAdvocatesViewAllScreenState extends State<TopAdvocatesViewAllScreen> {
+class _TopAdvocatesViewAllScreenState
+    extends State<_TopAdvocatesViewAllScreen> {
   _AdvocateSortOrder _sortOrder = _AdvocateSortOrder.descending;
 
   List<_LawyerData> _sortedAdvocates(List<_LawyerData> advocates) {
@@ -931,7 +951,8 @@ class _TopAdvocatesViewAllScreenState extends State<TopAdvocatesViewAllScreen> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => LawyerProfileView(profile: _toLawyerProfile(lawyer)),
+              builder: (_) =>
+                  LawyerProfileView(profile: _toLawyerProfile(lawyer)),
             ),
           );
         },
@@ -998,7 +1019,10 @@ class _TopAdvocatesViewAllScreenState extends State<TopAdvocatesViewAllScreen> {
                         const SizedBox(width: 4),
                         Text(
                           '${lawyer.rating.toStringAsFixed(1)} (${lawyer.reviews})',
-                          style: const TextStyle(color: _mutedText, fontSize: 16),
+                          style: const TextStyle(
+                            color: _mutedText,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -1072,7 +1096,7 @@ class _TopAdvocatesViewAllScreenState extends State<TopAdvocatesViewAllScreen> {
       body: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
         itemCount: sections.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (context, index) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final section = sections[index];
           final visibleAdvocates = widget.selectedSection == null
@@ -1090,7 +1114,9 @@ class _TopAdvocatesViewAllScreenState extends State<TopAdvocatesViewAllScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              ...visibleAdvocates.map((lawyer) => _buildAdvocateCard(context, lawyer)),
+              ...visibleAdvocates.map(
+                (lawyer) => _buildAdvocateCard(context, lawyer),
+              ),
             ],
           );
         },
@@ -1324,8 +1350,8 @@ class LawLinkAiChatScreen extends StatelessWidget {
   }
 }
 
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key, required this.notifications});
+class _NotificationsScreen extends StatelessWidget {
+  const _NotificationsScreen({required this.notifications});
 
   final List<_NotificationData> notifications;
 
@@ -1344,7 +1370,7 @@ class NotificationsScreen extends StatelessWidget {
       body: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
         itemCount: notifications.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (context, index) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final item = notifications[index];
           return Container(

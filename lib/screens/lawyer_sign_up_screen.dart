@@ -288,9 +288,12 @@ class _LawyerSignUpScreenState extends State<LawyerSignUpScreen> {
               _firstNameController,
               'First Name',
               validator: (value) {
-                if (value == null || value.trim().isEmpty) return 'Required';
-                if (!RegExp(r'^[A-Za-z ]+$').hasMatch(value))
+                if (value == null || value.trim().isEmpty) {
+                  return 'Required';
+                }
+                if (!RegExp(r'^[A-Za-z ]+$').hasMatch(value)) {
                   return 'Only alphabets and spaces allowed';
+                }
                 return null;
               },
             ),
@@ -299,9 +302,12 @@ class _LawyerSignUpScreenState extends State<LawyerSignUpScreen> {
               _lastNameController,
               'Last Name',
               validator: (value) {
-                if (value == null || value.trim().isEmpty) return 'Required';
-                if (!RegExp(r'^[A-Za-z ]+$').hasMatch(value))
+                if (value == null || value.trim().isEmpty) {
+                  return 'Required';
+                }
+                if (!RegExp(r'^[A-Za-z ]+$').hasMatch(value)) {
                   return 'Only alphabets and spaces allowed';
+                }
                 return null;
               },
             ),
@@ -311,9 +317,12 @@ class _LawyerSignUpScreenState extends State<LawyerSignUpScreen> {
               'Email',
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
-                if (value == null || value.trim().isEmpty) return 'Required';
-                if (!_emailRegex.hasMatch(value.trim()))
+                if (value == null || value.trim().isEmpty) {
+                  return 'Required';
+                }
+                if (!_emailRegex.hasMatch(value.trim())) {
                   return 'Enter a valid email';
+                }
                 return null;
               },
             ),
@@ -325,9 +334,12 @@ class _LawyerSignUpScreenState extends State<LawyerSignUpScreen> {
               'Phone Number',
               keyboardType: TextInputType.phone,
               validator: (value) {
-                if (value == null || value.trim().isEmpty) return 'Required';
-                if (!_phoneRegex.hasMatch(value.trim()))
+                if (value == null || value.trim().isEmpty) {
+                  return 'Required';
+                }
+                if (!_phoneRegex.hasMatch(value.trim())) {
                   return 'Phone number must be exactly 11 digits';
+                }
                 return null;
               },
             ),
@@ -356,7 +368,7 @@ class _LawyerSignUpScreenState extends State<LawyerSignUpScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               style: const TextStyle(color: Colors.black),
               dropdownColor: Colors.white,
               decoration: _inputDecoration('Select category'),

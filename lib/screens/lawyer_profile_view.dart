@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'chat_screen.dart';
+import 'booking_summary_screen.dart';
 
 const _bgColor = Color(0xFFF2F4F8);
 const _headerColor = Color(0xFF0D1B2A);
@@ -540,31 +540,11 @@ class _BottomActionBar extends StatelessWidget {
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Color(0xFFE6EAF2)),
-          ),
+          border: Border(top: BorderSide(color: Color(0xFFE6EAF2))),
         ),
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         child: Row(
           children: [
-            _SquareActionButton(
-              icon: Icons.chat_bubble_outline,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(
-                      lawyerId: profile.lawyerId,
-                      clientId: profile.clientId,
-                      lawyerName: profile.name,
-                      lawyerSpecialty: profile.specialty,
-                      lawyerInitials: profile.initials,
-                      caseId: profile.caseId,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 10),
             Expanded(
               child: SizedBox(
                 height: 48,
@@ -576,7 +556,17 @@ class _BottomActionBar extends StatelessWidget {
                     ),
                     elevation: 0,
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BookingSummaryScreen(
+                          lawyerName: profile.name,
+                          selectedDate: DateTime.now(),
+                          totalFee: profile.consultationFee,
+                        ),
+                      ),
+                    );
+                  },
                   child: const Text(
                     'Book Appointment',
                     style: TextStyle(
@@ -590,32 +580,6 @@ class _BottomActionBar extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SquareActionButton extends StatelessWidget {
-  const _SquareActionButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0xFFD8DEE9)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: EdgeInsets.zero,
-        ),
-        onPressed: onTap,
-        child: Icon(icon, color: _primaryText, size: 20),
       ),
     );
   }

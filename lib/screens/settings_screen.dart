@@ -289,7 +289,7 @@ class _ToggleTile extends StatelessWidget {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: _accentColor,
+        activeThumbColor: _accentColor,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 1),
     );

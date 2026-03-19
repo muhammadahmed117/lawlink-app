@@ -6,7 +6,7 @@ void main() {
 }
 
 class LawLinkApp extends StatelessWidget {
-  const LawLinkApp({Key? key}) : super(key: key);
+  const LawLinkApp({super.key});
 
   @override
   Widget build(BuildContext context) {
