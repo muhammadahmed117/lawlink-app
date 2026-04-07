@@ -1,0 +1,129 @@
+LawLink One-Page Project Summary
+================================
+
+What This Project Is
+--------------------
+LawLink is a legal services platform that connects clients with verified lawyers.
+It consists of:
+- A Flutter mobile app (client and lawyer experiences)
+- A React/Vite admin portal (verification, moderation, transaction review)
+- Firebase backend services (Auth, Firestore, Storage, Functions, Rules)
+
+
+Core User Roles
+---------------
+- Client: discovers verified lawyers, books, pays, and tracks updates
+- Lawyer: manages profile, pending requests, and appointments
+- Admin: verifies lawyers, handles complaints, reviews transactions/proofs
+
+
+System Components
+-----------------
+Mobile App (Flutter):
+- Authentication and role-based routing
+- Client dashboard and lawyer discovery
+- Lawyer dashboard and notifications
+- Booking summary and payment proof submission
+
+Admin Portal (React + Vite):
+- Lawyer verification queue
+- Complaints management
+- Transaction and payment-proof review
+- Status updates and account moderation
+
+Firebase Backend:
+- Auth: identity and sign-in
+- Firestore: operational data and workflows
+- Storage: file/document assets
+- Functions: protected admin operations
+- Rules: collection-level access control
+
+
+Main Firestore Collections
+--------------------------
+- users: role and account metadata
+- lawyers: profile + verification state
+- clients: client profile records
+- complaints: client-reported issues
+- transactions: booking/payment records
+- payment_docs: payment proof docs
+- notifications: receiver-scoped events
+- lawyer_docs: lawyer images/docs (including profile image refs)
+
+
+High-Level Pipeline
+-------------------
+1) User Signs In
+- Firebase Auth authenticates user.
+- App loads role/profile and routes user by role.
+
+2) Lawyer Verification
+- New lawyer starts unverified (pending).
+- Admin reviews CNIC/Bar docs.
+- Admin approves/rejects verification status.
+- Only approved lawyers are shown to clients.
+
+3) Client Discovery and Booking
+- Client sees verified lawyers only.
+- Client opens profile and starts booking flow.
+- Booking summary carries lawyer and fee details.
+
+4) Payment Submission
+- Client uploads payment proof image.
+- App writes payment proof and transaction record.
+- Transaction enters admin review state.
+
+5) Admin Review
+- Admin portal reads transactions and proof references.
+- Admin approves or rejects flow states.
+
+6) Lawyer Fulfillment
+- Lawyer dashboard loads owned pending requests.
+- Lawyer proceeds with appointment handling.
+
+7) Notifications
+- Events written for target receiver.
+- Client/lawyer notification screens read receiver-scoped streams.
+
+
+Security Model
+--------------
+- Firestore rules enforce:
+  - Authentication required access
+  - Role-based admin capabilities
+  - Ownership restrictions for user/lawyer/client docs
+  - Safe read patterns for public verified lawyer data
+- Query filters in app are aligned with rules (for example receiver_id and lawyer_id constraints).
+
+
+Run and Build
+-------------
+Flutter:
+- flutter pub get
+- flutter run
+- flutter analyze
+- flutter build apk --release
+
+Admin Portal:
+- cd admin-portal
+- npm install
+- npm run dev
+- npm run build
+
+Firebase Deploy:
+- firebase use lawlink-ahsaan-project-2026
+- firebase deploy --only firestore:rules
+- firebase deploy --only functions
+
+APK Output:
+- build/app/outputs/flutter-apk/app-release.apk
+
+
+Current Project Outcome
+-----------------------
+- Branding integrated with LawLink logo assets
+- Verification and role-based flows in place
+- Payment pipeline writing transaction/proof data
+- Client-side lawyer image rendering supported
+- Notification streams scoped for security compliance
+- Firestore rules updated for production safety

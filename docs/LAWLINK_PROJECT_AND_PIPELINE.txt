@@ -1,0 +1,290 @@
+LawLink Project Documentation and Pipeline Guide
+================================================
+
+1) Project Summary
+------------------
+LawLink is a legal services platform with:
+- Flutter app (client + lawyer experience)
+- React/Vite admin portal (verification, moderation, transactions)
+- Firebase backend (Auth, Firestore, Storage, Functions, Rules)
+
+Primary goals:
+- Let clients discover verified lawyers
+- Let lawyers manage requests and appointments
+- Let admin verify lawyers, handle complaints, and monitor transactions
+
+
+2) Monorepo Structure
+---------------------
+Root:
+- lib/                      Flutter application source code
+- admin-portal/             React + Vite admin panel
+- functions/                Firebase Cloud Functions (Node.js)
+- docs/                     Architecture and workflow docs
+- firestore.rules           Firestore security rules
+- storage.rules             Firebase Storage security rules
+- firebase.json             Firebase configuration and deploy targets
+- pubspec.yaml              Flutter dependencies and asset config
+
+Important app folders:
+- lib/screens/              App UI flows (sign-in, dashboards, payment, etc.)
+- lib/services/             App services (notifications, data helpers)
+
+Important admin folders:
+- admin-portal/src/         Admin application source
+- admin-portal/public/      Static assets (including logo)
+
+
+3) Tech Stack
+-------------
+Flutter app:
+- Dart + Flutter
+- Firebase Core/Auth/Firestore/Storage
+- file_picker, image crop, intl, etc.
+
+Admin portal:
+- React 19 + Vite 7
+- Firebase JS SDK
+- Tailwind CSS
+
+Backend:
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Storage
+- Cloud Functions (Node.js)
+
+
+4) Core Data Model (Firestore)
+------------------------------
+Main collections:
+- users
+  - Unified identity profile, role-based (admin/lawyer/client)
+- lawyers
+  - Lawyer profile, verification state, public listing eligibility
+- clients
+  - Client profile records
+- complaints
+  - Client complaints against lawyers, admin resolution lifecycle
+- transactions
+  - Payment and appointment transaction records
+- payment_docs
+  - Payment proof metadata/content references
+- notifications
+  - Role-aware notification stream (receiver based)
+- lawyer_docs
+  - Lawyer document assets (including profile picture document)
+
+Role strategy:
+- users/{uid}.role is the source of truth for permissions and admin checks.
+
+
+5) Major Business Pipelines
+---------------------------
+A) Authentication and Role Routing
+1. User signs in with Firebase Auth.
+2. App checks users/{uid} role and related profile docs.
+3. Navigation is routed to client, lawyer, or admin-appropriate experience.
+
+B) Lawyer Verification Pipeline
+1. Lawyer registers and submits professional documents.
+2. lawyers/{uid} starts with:
+   - isVerified = false
+   - verification_status = pending
+3. Admin portal reviews uploaded documents.
+4. Admin action:
+   - Approve: isVerified=true, verification_status=approved
+   - Reject:  isVerified=false, verification_status=rejected (+ reason optional)
+5. Client discovery only shows verified lawyers.
+
+C) Client Discovery and Lawyer Profile Pipeline
+1. Client dashboard queries verified lawyers.
+2. Lawyer cards load profile basics.
+3. If profile picture doc path exists, app resolves image bytes from lawyer_docs.
+4. UI shows image avatar when available, otherwise initials fallback.
+
+D) Booking and Payment Pipeline
+1. Client opens lawyer profile and starts booking.
+2. Booking summary passes lawyerId into payment flow.
+3. Client selects payment proof screenshot.
+4. App writes proof record under payment_docs/{txId}/files/proof.
+5. App creates transactions/{txId} with:
+   - client_id/clientId
+   - lawyer_id/lawyerId
+   - fee metadata
+   - proof references
+   - status (starts as pending_admin)
+6. Admin portal reviews transaction and proof.
+7. Admin can move status forward (for example pending_lawyer) or reject.
+8. Lawyer dashboard reads pending items filtered by lawyer ownership.
+
+E) Notifications Pipeline
+1. Notifications are created with receiver_id semantics.
+2. Client/lawyer screens subscribe using receiver-scoped queries.
+3. Unread count and list updates remain rule-compliant and privacy-safe.
+
+
+6) Security and Access Model
+----------------------------
+Security is enforced by firestore.rules using:
+- Authentication checks
+- Role checks (admin, lawyer, client)
+- Ownership checks (user can read only their own domain data unless allowed)
+
+Sensitive collections covered with explicit access logic:
+- transactions
+- payment_docs
+- notifications
+- lawyer_docs (public-safe profile image reads for verified lawyers)
+
+Important rule design principle:
+- Query shape must match rule constraints.
+- If rules require ownership, client queries must include ownership filters.
+
+
+7) Admin Portal Responsibilities
+--------------------------------
+Main admin responsibilities in admin-portal:
+- Verify/reject lawyers based on submitted documents
+- Review/manage complaints
+- Review payment transactions and proofs
+- Update status actions for platform workflow
+- Handle user/account administration
+
+Cloud Function available:
+- adminDeleteUserAccount (callable)
+  - Validates caller is admin
+  - Deletes profile docs from selected collections
+  - Deletes Firebase Auth user
+
+
+8) Branding and UI Notes
+------------------------
+Branding assets include LawLink logo usage across:
+- Flutter asset pipeline (assets/lawlink_logo.png)
+- Admin portal public assets
+
+Recent UX direction in project:
+- Professionalized circular logo presentation
+- Removed extra subtitle text in admin header where requested
+
+
+9) Runtime and Stability Notes
+------------------------------
+Web/Firestore stability depends on:
+- Rule-compliant filtered listeners
+- Avoiding overly broad collection streams when rules are strict
+- Consistent field naming across reads/writes (snake_case + camelCase compatibility where needed)
+
+
+10) Local Development Workflow
+------------------------------
+A) Flutter app
+1. Install dependencies:
+   flutter pub get
+2. Run app:
+   flutter run
+3. Analyze code:
+   flutter analyze
+
+B) Admin portal
+1. Move to admin folder:
+   cd admin-portal
+2. Install dependencies:
+   npm install
+3. Run dev server:
+   npm run dev
+4. Build production bundle:
+   npm run build
+
+C) Cloud Functions
+1. Move to functions folder:
+   cd functions
+2. Install dependencies:
+   npm install
+3. Deploy functions from root or with Firebase CLI targeting functions.
+
+
+11) Deployment Pipeline (Firebase)
+----------------------------------
+Prerequisites:
+- Firebase CLI installed and authenticated
+- Correct project selected (lawlink-ahsaan-project-2026)
+
+Typical deploy commands (from project root):
+- Deploy Firestore rules:
+  firebase deploy --only firestore:rules
+- Deploy Storage rules:
+  firebase deploy --only storage
+- Deploy Functions:
+  firebase deploy --only functions
+- Deploy all configured targets:
+  firebase deploy
+
+
+12) APK Build Pipeline
+----------------------
+Release build command:
+- flutter build apk --release
+
+Output artifact:
+- build/app/outputs/flutter-apk/app-release.apk
+
+Optional verification:
+- flutter analyze
+- Install APK on device and validate auth, lawyer listing, booking/payment, and dashboard flows.
+
+
+13) QA Checklist (Recommended)
+------------------------------
+- Auth:
+  - Client, lawyer, and admin role routing works
+- Verification:
+  - Unverified lawyer blocked from discoverability
+  - Approved lawyer visible to clients
+- Client lawyer list:
+  - Profile picture loads if available
+  - Fallback initials render correctly
+- Payment:
+  - Submitting proof creates payment_docs + transactions records
+- Admin transactions:
+  - Proof link/doc opens correctly
+  - Status actions update Firestore
+- Lawyer dashboard:
+  - Pending requests show only owned transactions
+- Notifications:
+  - Receiver-scoped stream shows proper unread behavior
+- Security:
+  - Unauthorized reads/writes are denied
+
+
+14) Operational Best Practices
+------------------------------
+- Keep Firestore field names consistent and documented.
+- Ensure each new collection gets explicit rules before release.
+- Align every frontend query with rule predicates.
+- Prefer server timestamps for auditability.
+- Validate critical flows after each rules deployment.
+
+
+15) Quick Command Reference
+---------------------------
+Flutter:
+- flutter pub get
+- flutter run
+- flutter analyze
+- flutter build apk --release
+
+Admin portal:
+- cd admin-portal
+- npm install
+- npm run dev
+- npm run build
+
+Firebase:
+- firebase login
+- firebase use lawlink-ahsaan-project-2026
+- firebase deploy --only firestore:rules
+- firebase deploy --only functions
+
+
+End of Document
