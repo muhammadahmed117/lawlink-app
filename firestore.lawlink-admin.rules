@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isLawyer(uid) {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(uid)).data.role == 'lawyer';
+    }
+
+    function isClient(uid) {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(uid)).data.role == 'client';
+    }
+
+    // users: each user can read/update own profile, admin can manage all.
+    match /users/{uid} {
+      allow create: if isSelf(uid);
+      allow read, update: if isSelf(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // lawyers: lawyer owns profile, admin can review and verify.
+    match /lawyers/{uid} {
+      allow create: if isSelf(uid) && isLawyer(uid);
+      allow read: if isSelf(uid) || isAdmin();
+
+      // Non-admin lawyer updates only non-verification fields.
+      allow update: if isSelf(uid)
+        && isLawyer(uid)
+        && request.resource.data.is_verified == resource.data.is_verified
+        && request.resource.data.verification_status == resource.data.verification_status
+        && request.resource.data.verified_by == resource.data.verified_by
+        && request.resource.data.verified_at == resource.data.verified_at;
+
+      // Admin can update any field, including is_verified.
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // clients: client owns profile, admin can read/manage.
+    match /clients/{uid} {
+      allow create: if isSelf(uid) && isClient(uid);
+      allow read, update: if isSelf(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // complaints: client creates, client/admin read; admin resolves.
+    match /complaints/{complaintId} {
+      allow create: if signedIn()
+        && isClient(request.resource.data.client_id)
+        && request.resource.data.client_id == request.auth.uid
+        && request.resource.data.status == 'open';
+
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.client_id == request.auth.uid)
+        || (signedIn() && resource.data.lawyer_id == request.auth.uid);
+
+      // Client can update only own open complaint text/title.
+      allow update: if signedIn()
+        && resource.data.client_id == request.auth.uid
+        && resource.data.status == 'open'
+        && request.resource.data.status == resource.data.status;
+
+      // Admin can update status to resolved and set resolution metadata.
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin();
+    }
+  }
+}

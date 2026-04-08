@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'client_dashboard.dart';
 
 const _headerTextColor = Color(0xFF0D1B2A);
@@ -11,6 +14,7 @@ const _successColor = Color(0xFF2BA84A);
 class AccountDetailsScreen extends StatefulWidget {
   const AccountDetailsScreen({
     super.key,
+    required this.lawyerId,
     required this.lawyerName,
     required this.date,
     required this.time,
@@ -18,6 +22,7 @@ class AccountDetailsScreen extends StatefulWidget {
     required this.totalFee,
   });
 
+  final String lawyerId;
   final String lawyerName;
   final String date;
   final String time;
@@ -30,23 +35,26 @@ class AccountDetailsScreen extends StatefulWidget {
 
 class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
   String? _uploadedScreenshot;
+  List<int>? _uploadedScreenshotBytes;
   bool _isSubmitting = false;
 
   Future<void> _pickScreenshot() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: false,
+      withData: true,
     );
     if (result == null || result.files.isEmpty) {
       return;
     }
     setState(() {
       _uploadedScreenshot = result.files.single.name;
+      _uploadedScreenshotBytes = result.files.single.bytes;
     });
   }
 
   Future<void> _submitProof() async {
-    if (_uploadedScreenshot == null || _isSubmitting) {
+    if (_uploadedScreenshot == null || _uploadedScreenshotBytes == null || _isSubmitting) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please upload the payment screenshot first.'),
@@ -59,7 +67,64 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
       _isSubmitting = true;
     });
 
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('Please sign in again before submitting payment proof.');
+      }
+
+      final clientDoc = await FirebaseFirestore.instance
+          .collection('clients')
+          .doc(currentUser.uid)
+          .get();
+      final clientName =
+          (clientDoc.data()?['name'] ?? currentUser.displayName ?? 'Client')
+              .toString();
+
+      final txRef = FirebaseFirestore.instance.collection('transactions').doc();
+      final proofDocPath = 'payment_docs/${txRef.id}/files/proof';
+      final feeNumber = widget.totalFee.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      await FirebaseFirestore.instance.doc(proofDocPath).set({
+        'file_name': _uploadedScreenshot,
+        'mime_type': 'image/*',
+        'bytes_base64': base64Encode(_uploadedScreenshotBytes!),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await txRef.set({
+        'clientId': currentUser.uid,
+        'client_id': currentUser.uid,
+        'clientName': clientName,
+        'client_name': clientName,
+        'lawyerId': widget.lawyerId,
+        'lawyer_id': widget.lawyerId,
+        'lawyerName': widget.lawyerName,
+        'targetLawyerName': widget.lawyerName,
+        'feeAmount': feeNumber,
+        'fee': feeNumber,
+        'totalFee': widget.totalFee,
+        'paymentProofDocPath': proofDocPath,
+        'paymentProofFileName': _uploadedScreenshot,
+        'status': 'pending_admin',
+        'appointmentDate': widget.date,
+        'appointmentTime': widget.time,
+        'appointmentMode': widget.mode,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSubmitting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+      return;
+    }
 
     if (!mounted) {
       return;

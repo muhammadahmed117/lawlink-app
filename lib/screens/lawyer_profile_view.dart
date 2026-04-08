@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import 'booking_summary_screen.dart';
 
 const _bgColor = Color(0xFFF2F4F8);
@@ -43,16 +44,7 @@ class LawyerProfileView extends StatelessWidget {
                 child: _AboutCard(about: profile.about),
               ),
               const SizedBox(height: 18),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: _SectionTitle('Payment Methods'),
-              ),
-              const SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _PaymentMethodsRow(methods: profile.paymentMethods),
-              ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 8),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: _SectionTitle('Reviews'),
@@ -124,15 +116,22 @@ class _ProfileHeader extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white24),
                 ),
-                child: Center(
-                  child: Text(
-                    profile.initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                child: CircleAvatar(
+                  radius: 38,
+                  backgroundColor: Colors.white12,
+                  backgroundImage: profile.profileImageBytes != null
+                      ? MemoryImage(profile.profileImageBytes!)
+                      : null,
+                  child: profile.profileImageBytes == null
+                      ? Text(
+                          profile.initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : null,
                 ),
               ),
               const SizedBox(width: 14),
@@ -377,58 +376,6 @@ class _AboutCard extends StatelessWidget {
   }
 }
 
-class _PaymentMethodsRow extends StatelessWidget {
-  const _PaymentMethodsRow({required this.methods});
-
-  final List<String> methods;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 38,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: methods
-            .asMap()
-            .entries
-            .expand(
-              (entry) => [
-                _PaymentChip(label: entry.value),
-                if (entry.key != methods.length - 1) const SizedBox(width: 8),
-              ],
-            )
-            .toList(),
-      ),
-    );
-  }
-}
-
-class _PaymentChip extends StatelessWidget {
-  const _PaymentChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE1E6EF)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: _primaryText,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
 class _ReviewCard extends StatelessWidget {
   const _ReviewCard({required this.review});
 
@@ -560,6 +507,7 @@ class _BottomActionBar extends StatelessWidget {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => BookingSummaryScreen(
+                          lawyerId: profile.lawyerId,
                           lawyerName: profile.name,
                           selectedDate: DateTime.now(),
                           totalFee: profile.consultationFee,
@@ -600,6 +548,7 @@ class LawyerProfileData {
     required this.about,
     required this.paymentMethods,
     required this.reviews,
+    this.profileImageBytes,
     this.caseId,
   });
 
@@ -616,6 +565,7 @@ class LawyerProfileData {
   final String about;
   final List<String> paymentMethods;
   final List<LawyerReview> reviews;
+  final Uint8List? profileImageBytes;
   final String? caseId;
 }
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "513598221273",
+    "project_id": "lawlink-ahsaan-project-2026",
+    "storage_bucket": "lawlink-ahsaan-project-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:513598221273:android:7a8736df7c24b4fca4c7c8",
+        "android_client_info": {
+          "package_name": "com.example.ahsaan_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCpwn6ZIvnC70OLGN50LD1MM9S38VGUUgM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

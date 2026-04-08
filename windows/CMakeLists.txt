@@ -10,6 +10,10 @@ set(BINARY_NAME "ahsaan_project")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# CMake 4 removes compatibility with very old policy versions used by some
+# third-party plugin CMake files (for example, Firebase C++ SDK packaging).
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)

@@ -13,6 +13,7 @@ enum BookingMode { contactOnline, inPerson }
 class BookingSummaryScreen extends StatefulWidget {
   const BookingSummaryScreen({
     super.key,
+    required this.lawyerId,
     required this.lawyerName,
     required this.selectedDate,
     required this.totalFee,
@@ -20,6 +21,7 @@ class BookingSummaryScreen extends StatefulWidget {
     this.initialMode = BookingMode.contactOnline,
   });
 
+  final String lawyerId;
   final String lawyerName;
   final DateTime selectedDate;
   final String selectedTime;
@@ -100,101 +102,104 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
                 horizontalPadding,
                 16,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _ModeOptionCard(
-                    title: 'Contact Online',
-                    icon: Icons.chat_bubble_outline_rounded,
-                    selected: _selectedMode == BookingMode.contactOnline,
-                    onTap: () {
-                      setState(() {
-                        _selectedMode = BookingMode.contactOnline;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _ModeOptionCard(
-                    title: 'In-Person Meeting',
-                    icon: Icons.location_on_outlined,
-                    selected: _selectedMode == BookingMode.inPerson,
-                    onTap: () {
-                      setState(() {
-                        _selectedMode = BookingMode.inPerson;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _summaryBackgroundColor,
-                      borderRadius: BorderRadius.circular(18),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ModeOptionCard(
+                      title: 'Contact Online',
+                      icon: Icons.chat_bubble_outline_rounded,
+                      selected: _selectedMode == BookingMode.contactOnline,
+                      onTap: () {
+                        setState(() {
+                          _selectedMode = BookingMode.contactOnline;
+                        });
+                      },
                     ),
-                    padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Booking Summary',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: _primaryTextColor,
+                    const SizedBox(height: 12),
+                    _ModeOptionCard(
+                      title: 'In-Person Meeting',
+                      icon: Icons.location_on_outlined,
+                      selected: _selectedMode == BookingMode.inPerson,
+                      onTap: () {
+                        setState(() {
+                          _selectedMode = BookingMode.inPerson;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _summaryBackgroundColor,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Booking Summary',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: _primaryTextColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _SummaryRow(
+                            label: 'Lawyer Name',
+                            value: widget.lawyerName,
+                          ),
+                          const SizedBox(height: 10),
+                          _SummaryRow(
+                            label: 'Date',
+                            value: _formatDate(widget.selectedDate),
+                          ),
+                          const SizedBox(height: 10),
+                          _SummaryRow(label: 'Time', value: widget.selectedTime),
+                          const SizedBox(height: 10),
+                          _SummaryRow(label: 'Mode', value: _modeLabel),
+                          const SizedBox(height: 10),
+                          _SummaryRow(label: 'Total Fee', value: widget.totalFee),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _accentColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => AccountDetailsScreen(
+                                lawyerId: widget.lawyerId,
+                                lawyerName: widget.lawyerName,
+                                date: _formatDate(widget.selectedDate),
+                                time: widget.selectedTime,
+                                mode: _modeLabel,
+                                totalFee: widget.totalFee,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Proceed to Payment',
+                          style: TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        _SummaryRow(
-                          label: 'Lawyer Name',
-                          value: widget.lawyerName,
-                        ),
-                        const SizedBox(height: 10),
-                        _SummaryRow(
-                          label: 'Date',
-                          value: _formatDate(widget.selectedDate),
-                        ),
-                        const SizedBox(height: 10),
-                        _SummaryRow(label: 'Time', value: widget.selectedTime),
-                        const SizedBox(height: 10),
-                        _SummaryRow(label: 'Mode', value: _modeLabel),
-                        const SizedBox(height: 10),
-                        _SummaryRow(label: 'Total Fee', value: widget.totalFee),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    height: 54,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accentColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => AccountDetailsScreen(
-                              lawyerName: widget.lawyerName,
-                              date: _formatDate(widget.selectedDate),
-                              time: widget.selectedTime,
-                              mode: _modeLabel,
-                              totalFee: widget.totalFee,
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Proceed to Payment',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },

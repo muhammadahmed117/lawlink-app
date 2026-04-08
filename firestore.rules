@@ -1,0 +1,137 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /users/{userId} {
+      allow create: if isSelf(userId);
+      allow read, update: if isSelf(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /clients/{userId} {
+      allow create: if isSelf(userId);
+      allow read, update: if isSelf(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /lawyers/{userId} {
+      allow create: if isSelf(userId);
+
+      // Self and admin can read full profile; clients can read only verified lawyers.
+      allow read: if isSelf(userId)
+        || isAdmin()
+        || (signedIn() && resource.data.isVerified == true);
+
+      // Lawyer self-update is allowed but cannot change verification fields.
+      allow update: if isSelf(userId)
+        && request.resource.data.isVerified == resource.data.isVerified
+        && request.resource.data.verification_status == resource.data.verification_status
+        && request.resource.data.verified_by == resource.data.verified_by
+        && request.resource.data.verified_at == resource.data.verified_at;
+
+      // Only admin can approve/reject by updating verification fields.
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    match /lawyer_docs/{userId}/files/{docId} {
+      // Self/admin can manage all lawyer docs.
+      allow create, read, update: if isSelf(userId) || isAdmin();
+
+      // Clients can only read the public profile picture of verified lawyers.
+      allow read: if signedIn()
+        && docId == 'profile_picture'
+        && get(/databases/$(database)/documents/lawyers/$(userId)).data.isVerified == true;
+      allow delete: if isAdmin();
+    }
+
+    match /complaints/{complaintId} {
+      allow create: if signedIn()
+        && request.resource.data.client_id == request.auth.uid
+        && request.resource.data.status == 'open';
+
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.client_id == request.auth.uid)
+        || (signedIn() && resource.data.lawyer_id == request.auth.uid);
+
+      allow update: if isAdmin()
+        || (signedIn()
+          && resource.data.client_id == request.auth.uid
+          && resource.data.status == 'open'
+          && request.resource.data.status == resource.data.status);
+
+      allow delete: if isAdmin();
+    }
+
+    match /transactions/{transactionId} {
+      // Client creates transaction during payment proof submission.
+      allow create: if signedIn()
+        && request.resource.data.client_id == request.auth.uid;
+
+      // Admin, related client, and related lawyer can view.
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.client_id == request.auth.uid)
+        || (signedIn() && resource.data.lawyer_id == request.auth.uid);
+
+      // Admin can update any transaction (verify/reject/forward).
+      allow update: if isAdmin()
+        // Lawyer can update status for their own transactions.
+        || (signedIn() && resource.data.lawyer_id == request.auth.uid);
+
+      allow delete: if isAdmin();
+    }
+
+    match /payment_docs/{transactionId}/files/{docId} {
+      // Client uploads proof image before/with transaction creation.
+      allow create: if signedIn() && docId == 'proof';
+
+      // Admin and parties linked to transaction can read proof.
+      allow read: if isAdmin()
+        || (signedIn() && get(/databases/$(database)/documents/transactions/$(transactionId)).data.client_id == request.auth.uid)
+        || (signedIn() && get(/databases/$(database)/documents/transactions/$(transactionId)).data.lawyer_id == request.auth.uid);
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      // Admin or authenticated app flows can create notifications.
+      allow create: if signedIn();
+
+      // Receiver and admin can read.
+      allow read: if isAdmin()
+        || (signedIn() && (
+          resource.data.receiverId == request.auth.uid
+          || resource.data.receiver_id == request.auth.uid
+          || resource.data.user_id == request.auth.uid
+          || resource.data.userId == request.auth.uid
+          || resource.data.uid == request.auth.uid
+        ));
+
+      // Receiver can mark own notifications read; admin can update anything.
+      allow update: if isAdmin()
+        || (signedIn() && (
+          resource.data.receiverId == request.auth.uid
+          || resource.data.receiver_id == request.auth.uid
+          || resource.data.user_id == request.auth.uid
+          || resource.data.userId == request.auth.uid
+          || resource.data.uid == request.auth.uid
+        ));
+
+      allow delete: if isAdmin();
+    }
+
+  }
+}

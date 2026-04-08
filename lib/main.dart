@@ -1,7 +1,26 @@
 import 'package:flutter/material.dart';
-import 'screens/onboarding_screen.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase_options.dart';
+import 'screens/auth_gate.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Avoid stale IndexedDB watch state issues on web.
+  if (kIsWeb) {
+    try {
+      await FirebaseFirestore.instance.clearPersistence();
+    } catch (_) {
+      // Ignore if Firestore already started in this session.
+    }
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: false,
+    );
+  }
+
   runApp(const LawLinkApp());
 }
 
@@ -32,7 +51,7 @@ class LawLinkApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const OnboardingScreen(),
+      home: const AuthGate(),
     );
   }
 }

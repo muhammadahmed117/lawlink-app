@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'client_notifications.dart';
+import '../services/notification_service.dart';
 import 'settings_screen.dart';
 import 'lawyer_profile_view.dart';
 
@@ -20,142 +26,6 @@ const List<_CategoryData> _categories = [
   _CategoryData(label: 'Tax', icon: Icons.attach_money_rounded),
 ];
 
-final List<_TopAdvocateSectionData> _topAdvocateSections = [
-  _TopAdvocateSectionData(
-    title: 'Criminal',
-    advocates: _buildAdvocates(
-      specialization: 'Criminal Law',
-      feeStart: 7000,
-      names: const [
-        'Faraz Malik',
-        'Hina Rauf',
-        'Omar Javed',
-        'Adeel Shafiq',
-        'Nida Rameez',
-        'Kamil Waqar',
-        'Saba Awan',
-        'Junaid Tariq',
-        'Rabia Zahid',
-        'Taha Karim',
-      ],
-    ),
-  ),
-  _TopAdvocateSectionData(
-    title: 'Property',
-    advocates: _buildAdvocates(
-      specialization: 'Property Law',
-      feeStart: 6500,
-      names: const [
-        'Ahsan Raza',
-        'Mehreen Fatima',
-        'Kashif Mehmood',
-        'Qasim Rafique',
-        'Sara Munir',
-        'Ibrahim Ayaz',
-        'Hira Basit',
-        'Noman Saeed',
-        'Ayesha Iqbal',
-        'Faisal Haris',
-      ],
-    ),
-  ),
-  _TopAdvocateSectionData(
-    title: 'Tax',
-    advocates: _buildAdvocates(
-      specialization: 'Tax Law',
-      feeStart: 6000,
-      names: const [
-        'Saad Qureshi',
-        'Nimra Tariq',
-        'Bilal Hashmi',
-        'Afnan Sohail',
-        'Madiha Saleem',
-        'Hassan Jamil',
-        'Rania Feroz',
-        'Talha Nabeel',
-        'Zoya Danish',
-        'Shayan Rao',
-      ],
-    ),
-  ),
-  _TopAdvocateSectionData(
-    title: 'Civil',
-    advocates: _buildAdvocates(
-      specialization: 'Civil Law',
-      feeStart: 5500,
-      names: const [
-        'Rimsha Noor',
-        'Danish Sami',
-        'Iqra Nadeem',
-        'Aamir Khanum',
-        'Minal Sabir',
-        'Shahzaib Khan',
-        'Zarnab Rauf',
-        'Rehan Mazhar',
-        'Anusha Naveed',
-        'Hamid Saleh',
-      ],
-    ),
-  ),
-  _TopAdvocateSectionData(
-    title: 'Corporate',
-    advocates: _buildAdvocates(
-      specialization: 'Corporate Law',
-      feeStart: 8000,
-      names: const [
-        'Hamza Irfan',
-        'Sahar Ali',
-        'Taimoor Aslam',
-        'Areej Imran',
-        'Rizwan Tahir',
-        'Fariha Kamal',
-        'Zeeshan Noor',
-        'Muneeba Yasir',
-        'Adnan Junaid',
-        'Laiba Shahid',
-      ],
-    ),
-  ),
-  _TopAdvocateSectionData(
-    title: 'Family',
-    advocates: _buildAdvocates(
-      specialization: 'Family Law',
-      feeStart: 5000,
-      names: const [
-        'Areeba Hassan',
-        'Usman Khalid',
-        'Maham Siddiqui',
-        'Hadia Qamar',
-        'Yasir Naeem',
-        'Saira Akram',
-        'Raza Naqvi',
-        'Noor Ul Ain',
-        'Kamran Arif',
-        'Rida Saif',
-      ],
-    ),
-  ),
-];
-
-List<_LawyerData> _buildAdvocates({
-  required List<String> names,
-  required String specialization,
-  required int feeStart,
-}) {
-  return List<_LawyerData>.generate(names.length, (index) {
-    final rating = 4.9 - (index * 0.05);
-    return _LawyerData(
-      name: names[index],
-      specialization: specialization,
-      years: '${6 + index} years',
-      fee: 'PKR ${feeStart + (index * 300)}',
-      rating: rating < 4.2 ? 4.2 : rating,
-      reviews: 120 + (index * 13),
-      initials: _nameInitials(names[index]),
-    );
-  });
-}
-
 String _nameInitials(String fullName) {
   final parts = fullName.split(' ').where((part) => part.isNotEmpty).toList();
   if (parts.isEmpty) {
@@ -170,87 +40,30 @@ String _nameInitials(String fullName) {
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
 }
 
-String _lawyerIdFromName(String name) {
-  final String normalized = name.trim().toLowerCase();
-  final String id = normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
-  return 'lawyer_$id';
-}
-
 LawyerProfileData _toLawyerProfile(_LawyerData lawyer) {
   return LawyerProfileData(
-    lawyerId: _lawyerIdFromName(lawyer.name),
+    lawyerId: lawyer.id,
     clientId: 'client_001',
     initials: lawyer.initials,
     name: lawyer.name,
     specialty: lawyer.specialization,
     rating: lawyer.rating,
     ratingCount: lawyer.reviews,
-    location: 'Lahore, Pakistan',
+    location: lawyer.city.isEmpty ? 'Pakistan' : '${lawyer.city}, Pakistan',
     consultationFee: lawyer.fee,
     experience: lawyer.years,
-    about:
-        'Advocate ${lawyer.name} is an experienced ${lawyer.specialization.toLowerCase()} practitioner known for practical legal strategy, clear communication, and reliable client support from consultation to final resolution.',
-    paymentMethods: const ['Bank Transfer', 'Easypaisa', 'JazzCash'],
-    reviews: const [
-      LawyerReview(
-        initials: 'AR',
-        name: 'Adeel Raza',
-        rating: 5,
-        comment:
-            'Very professional and clear in communication. Helped me understand every legal step with confidence.',
-        date: '12 Feb 2026',
-      ),
-      LawyerReview(
-        initials: 'SM',
-        name: 'Sana Malik',
-        rating: 5,
-        comment:
-            'Handled my case with great detail and responsiveness. The consultation was worth every rupee.',
-        date: '03 Feb 2026',
-      ),
-      LawyerReview(
-        initials: 'HK',
-        name: 'Hassan Khan',
-        rating: 5,
-        comment:
-            'Excellent advice and a smooth process overall. Strong command over legal details and deadlines.',
-        date: '27 Jan 2026',
-      ),
-    ],
+    about: lawyer.bio.isEmpty
+      ? 'No bio added by this lawyer yet.'
+      : lawyer.bio,
+    paymentMethods: lawyer.paymentMethods,
+    reviews: const [],
+    profileImageBytes: lawyer.profileImageBytes,
   );
 }
 
 enum _AdvocateSortOrder { ascending, descending }
 
-const List<_AppointmentData> _appointments = [
-  _AppointmentData(
-    name: 'Amir Khan',
-    dateTime: '2024-12-15 at 10:00 AM',
-    status: 'confirmed',
-  ),
-  _AppointmentData(
-    name: 'Amir Khan',
-    dateTime: '2024-12-18 at 11:00 AM',
-    status: 'pending',
-  ),
-];
-
-List<_NotificationData> _buildInitialNotificationsFromAppointments() {
-  return [
-    for (final appointment in _appointments)
-      _NotificationData(
-        title: appointment.status == 'confirmed'
-            ? 'Appointment Confirmed'
-            : 'Appointment Pending',
-        message: appointment.status == 'confirmed'
-            ? 'Your appointment with ${appointment.name} is confirmed for ${appointment.dateTime}.'
-            : 'Your appointment request with ${appointment.name} on ${appointment.dateTime} is still pending.',
-        time: appointment.status == 'confirmed' ? '15 min ago' : '45 min ago',
-        isAlert: true,
-        isRead: false,
-      ),
-  ];
-}
+const List<_AppointmentData> _appointments = [];
 
 class ClientDashboard extends StatefulWidget {
   const ClientDashboard({
@@ -273,25 +86,23 @@ class _ClientDashboardState extends State<ClientDashboard> {
   Timer? _welcomeTimer;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  late List<_NotificationData> _notifications;
-
+  bool _isFetchingVerifiedLawyers = false;
+  bool _isLoadingAllVerifiedLawyers = false;
+  List<_LawyerData> _allVerifiedLawyers = const [];
+  List<_LawyerData> _verifiedLawyerResults = const [];
+  int _searchRequestCounter = 0;
   @override
   void initState() {
     super.initState();
-    _notifications = _buildInitialNotificationsFromAppointments();
     if (widget.initialNotificationTitle != null &&
         widget.initialNotificationMessage != null) {
-      _notifications = [
-        _NotificationData(
-          title: widget.initialNotificationTitle!,
-          message: widget.initialNotificationMessage!,
-          time: 'Just now',
-          isAlert: true,
-          isRead: false,
-        ),
-        ..._notifications,
-      ];
+      _createClientNotification(
+        title: widget.initialNotificationTitle!,
+        body: widget.initialNotificationMessage!,
+        type: 'message',
+      );
     }
+    _loadVerifiedLawyers();
     _welcomeTimer = Timer(const Duration(seconds: 10), () {
       if (!mounted) {
         return;
@@ -313,30 +124,211 @@ class _ClientDashboardState extends State<ClientDashboard> {
     return source.toLowerCase().contains(query);
   }
 
-  void _markAllNotificationsRead() {
+  Future<Uint8List?> _loadLawyerProfileImageBytes(String? docPath) async {
+    if (docPath == null || docPath.trim().isEmpty) {
+      return null;
+    }
+    try {
+      final snap = await FirebaseFirestore.instance.doc(docPath).get();
+      final data = snap.data();
+      final base64 = (data?['bytes_base64'] ?? '').toString();
+      if (base64.isEmpty) {
+        return null;
+      }
+      return base64Decode(base64);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<_TopAdvocateSectionData> _sectionsFromLawyers(List<_LawyerData> lawyers) {
+    final Map<String, List<_LawyerData>> grouped = {};
+    for (final lawyer in lawyers) {
+      final key = lawyer.specialization.trim().isEmpty
+          ? 'General Law'
+          : lawyer.specialization;
+      grouped.putIfAbsent(key, () => <_LawyerData>[]).add(lawyer);
+    }
+
+    final List<_TopAdvocateSectionData> sections = grouped.entries
+        .map((entry) => _TopAdvocateSectionData(
+              title: entry.key,
+              advocates: entry.value,
+            ))
+        .toList();
+
+    sections.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return sections;
+  }
+
+  Future<void> _loadVerifiedLawyers() async {
+    if (_isLoadingAllVerifiedLawyers) {
+      return;
+    }
+
     setState(() {
-      _notifications = _notifications
-          .map((notification) => notification.copyWith(isRead: true))
-          .toList();
+      _isLoadingAllVerifiedLawyers = true;
+    });
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('lawyers')
+          .where('isVerified', isEqualTo: true)
+          .limit(120)
+          .get();
+
+      final lawyers = await Future.wait(snap.docs.map((doc) async {
+        final data = doc.data();
+        final profile =
+          (data['lawyer'] is Map)
+            ? Map<String, dynamic>.from(data['lawyer'] as Map)
+            : const <String, dynamic>{};
+        final name = (profile['name'] ?? data['name'] ?? 'Lawyer').toString();
+        final specialization =
+          (profile['category'] ??
+              data['category'] ??
+              data['specialization'] ??
+              'General Law')
+                .toString();
+        final yearsRaw =
+          (profile['experienceYears'] ?? data['experienceYears'] ?? '0')
+            .toString();
+        final feeRaw =
+          (profile['consultationFee'] ?? data['consultationFee'] ?? 'N/A')
+            .toString();
+        final cityRaw = (profile['city'] ?? data['city'] ?? '').toString().trim();
+        final bioRaw = (profile['bio'] ?? data['bio'] ?? '').toString().trim();
+        final ratingRaw = data['rating'];
+        final reviewsRaw = data['reviewsCount'] ?? data['reviews'] ?? 0;
+        final paymentMethodsRaw =
+          profile['paymentMethods'] ?? data['paymentMethods'];
+        final profilePicDocPath =
+            (profile['profilePictureDocPath'] ?? data['profile_pic_doc_path'])
+                .toString();
+        final profileImageBytes = await _loadLawyerProfileImageBytes(
+          profilePicDocPath,
+        );
+
+        final rating = ratingRaw is num
+            ? ratingRaw.toDouble()
+            : double.tryParse((ratingRaw ?? '0').toString()) ?? 0;
+        final reviewsCount = reviewsRaw is num
+            ? reviewsRaw.toInt()
+            : int.tryParse((reviewsRaw ?? '0').toString()) ?? 0;
+
+        final parsedMethods = paymentMethodsRaw is List
+            ? paymentMethodsRaw
+              .map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty)
+              .toList()
+            : <String>[];
+
+        return _LawyerData(
+          id: doc.id,
+          name: name,
+          specialization: specialization,
+          years: '$yearsRaw years',
+          fee: 'PKR $feeRaw',
+          rating: rating,
+          reviews: reviewsCount,
+          initials: _nameInitials(name),
+          city: cityRaw,
+          bio: bioRaw,
+          paymentMethods: parsedMethods.isEmpty
+          ? const ['Easypaisa', 'JazzCash']
+          : parsedMethods,
+          profileImageBytes: profileImageBytes,
+        );
+      }).toList());
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _allVerifiedLawyers = lawyers;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingAllVerifiedLawyers = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _searchVerifiedLawyers(String query) async {
+    if (_allVerifiedLawyers.isEmpty && !_isLoadingAllVerifiedLawyers) {
+      await _loadVerifiedLawyers();
+    }
+
+    if (query.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isFetchingVerifiedLawyers = false;
+        _verifiedLawyerResults = const [];
+      });
+      return;
+    }
+
+    final requestId = ++_searchRequestCounter;
+    setState(() {
+      _isFetchingVerifiedLawyers = true;
+    });
+
+    if (!mounted || requestId != _searchRequestCounter) {
+      return;
+    }
+
+    final results = _allVerifiedLawyers.where((lawyer) {
+      return _matchesQuery(lawyer.name, query) ||
+          _matchesQuery(lawyer.specialization, query);
+    }).toList();
+
+    setState(() {
+      _isFetchingVerifiedLawyers = false;
+      _verifiedLawyerResults = results;
     });
   }
 
-  void _addNotification(_NotificationData notification) {
-    setState(() {
-      _notifications = [notification, ..._notifications];
-    });
+  Future<void> _createClientNotification({
+    required String title,
+    required String body,
+    required String type,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return;
+    }
+
+    await NotificationService.createNotification(
+      uid: uid,
+      role: AppNotificationRole.client,
+      title: title,
+      body: body,
+      type: type,
+    );
   }
 
   void _handleAppointmentMessageTap(_AppointmentData appointment) {
-    _addNotification(
-      _NotificationData(
-        title: 'New Message Received',
-        message:
-            '${appointment.name} sent you a message about ${appointment.dateTime}.',
-        time: 'Just now',
-        isAlert: true,
-        isRead: false,
-      ),
+    _createClientNotification(
+      title: 'New Message Received',
+      body: '${appointment.name} sent you a message about ${appointment.dateTime}.',
+      type: 'message',
+    );
+  }
+
+  Stream<int> _clientUnreadCountStream() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return Stream<int>.value(0);
+    }
+
+    return NotificationService.unreadCountStream(
+      uid: uid,
+      role: AppNotificationRole.client,
     );
   }
 
@@ -351,20 +343,11 @@ class _ClientDashboardState extends State<ClientDashboard> {
               .toList()
         : _categories;
 
-    final List<_TopAdvocateSectionData> filteredTopSections = isSearching
-        ? _topAdvocateSections
-              .map((section) {
-                final List<_LawyerData> matchedAdvocates = section.advocates
-                    .where((lawyer) => _matchesQuery(lawyer.name, query))
-                    .toList();
-                return _TopAdvocateSectionData(
-                  title: section.title,
-                  advocates: matchedAdvocates,
-                );
-              })
-              .where((section) => section.advocates.isNotEmpty)
-              .toList()
-        : _topAdvocateSections;
+    final List<_LawyerData> visibleLawyers = isSearching
+        ? _verifiedLawyerResults
+        : _allVerifiedLawyers;
+    final List<_TopAdvocateSectionData> visibleSections =
+        _sectionsFromLawyers(visibleLawyers);
 
     final List<_AppointmentData> filteredAppointments = isSearching
         ? _appointments
@@ -377,14 +360,13 @@ class _ClientDashboardState extends State<ClientDashboard> {
               .toList()
         : _appointments;
 
-    final bool showTopLawyers = filteredTopSections.isNotEmpty;
+    final bool showTopLawyers = isSearching
+      ? (_isFetchingVerifiedLawyers || visibleSections.isNotEmpty)
+      : (_isLoadingAllVerifiedLawyers || visibleSections.isNotEmpty);
     final bool hasResults =
         filteredCategories.isNotEmpty ||
         filteredAppointments.isNotEmpty ||
         showTopLawyers;
-    final int unreadAlertCount = _notifications
-        .where((notification) => notification.isAlert && !notification.isRead)
-        .length;
     final bool showCategories = filteredCategories.isNotEmpty;
     final bool showAppointments = filteredAppointments.isNotEmpty;
 
@@ -411,31 +393,36 @@ class _ClientDashboardState extends State<ClientDashboard> {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 96),
             children: [
-              _DashboardHeader(
-                userName: widget.userName,
-                showWelcomeText: _showWelcomeText,
-                controller: _searchController,
-                hasSearchText: _searchQuery.trim().isNotEmpty,
-                unreadAlertCount: unreadAlertCount,
-                onSearchChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-                onNotificationsTap: () {
-                  _markAllNotificationsRead();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          _NotificationsScreen(notifications: _notifications),
-                    ),
+              StreamBuilder<int>(
+                stream: _clientUnreadCountStream(),
+                builder: (context, snapshot) {
+                  final unreadAlertCount = snapshot.data ?? 0;
+                  return _DashboardHeader(
+                    userName: widget.userName,
+                    showWelcomeText: _showWelcomeText,
+                    controller: _searchController,
+                    hasSearchText: _searchQuery.trim().isNotEmpty,
+                    unreadAlertCount: unreadAlertCount,
+                    onSearchChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                      _searchVerifiedLawyers(value.trim().toLowerCase());
+                    },
+                    onNotificationsTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ClientNotificationsScreen(),
+                        ),
+                      );
+                    },
+                    onClearSearch: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
                   );
-                },
-                onClearSearch: () {
-                  _searchController.clear();
-                  setState(() {
-                    _searchQuery = '';
-                  });
                 },
               ),
               Padding(
@@ -444,15 +431,23 @@ class _ClientDashboardState extends State<ClientDashboard> {
                   children: [
                     if (hasResults) ...[
                       if (showCategories)
-                        _LegalCategoriesSection(categories: filteredCategories),
+                        _LegalCategoriesSection(
+                          categories: filteredCategories,
+                          sections: visibleSections,
+                        ),
                       if (showCategories &&
                           (showTopLawyers || showAppointments))
                         const SizedBox(height: 22),
                       if (showTopLawyers)
-                        _TopLawyersSection(
-                          sections: filteredTopSections,
-                          isSearching: isSearching,
-                        ),
+                        (_isFetchingVerifiedLawyers || _isLoadingAllVerifiedLawyers)
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: Center(child: CircularProgressIndicator()),
+                              )
+                            : _TopLawyersSection(
+                                sections: visibleSections,
+                                isSearching: isSearching,
+                              ),
                       if (showTopLawyers && showAppointments)
                         const SizedBox(height: 22),
                       if (showAppointments)
@@ -648,9 +643,13 @@ class _SearchBar extends StatelessWidget {
 }
 
 class _LegalCategoriesSection extends StatelessWidget {
-  const _LegalCategoriesSection({required this.categories});
+  const _LegalCategoriesSection({
+    required this.categories,
+    required this.sections,
+  });
 
   final List<_CategoryData> categories;
+  final List<_TopAdvocateSectionData> sections;
 
   @override
   Widget build(BuildContext context) {
@@ -678,8 +677,8 @@ class _LegalCategoriesSection extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final item = categories[index];
-            final section = _topAdvocateSections.firstWhere(
-              (entry) => entry.title == item.label,
+            final section = sections.firstWhere(
+              (entry) => entry.title.toLowerCase().contains(item.label.toLowerCase()),
               orElse: () => _TopAdvocateSectionData(
                 title: item.label,
                 advocates: const [],
@@ -696,6 +695,7 @@ class _LegalCategoriesSection extends StatelessWidget {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => _TopAdvocatesViewAllScreen(
+                              allSections: sections,
                               selectedSection: section,
                             ),
                           ),
@@ -754,10 +754,15 @@ class _TopLawyersSection extends StatelessWidget {
               CircleAvatar(
                 radius: 40 / 2,
                 backgroundColor: _bgColor,
-                child: Text(
-                  lawyer.initials,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                ),
+                backgroundImage: lawyer.profileImageBytes != null
+                    ? MemoryImage(lawyer.profileImageBytes!)
+                    : null,
+                child: lawyer.profileImageBytes == null
+                    ? Text(
+                        lawyer.initials,
+                        style: const TextStyle(color: Colors.white, fontSize: 18),
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -871,7 +876,9 @@ class _TopLawyersSection extends StatelessWidget {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const _TopAdvocatesViewAllScreen(),
+                      builder: (_) => _TopAdvocatesViewAllScreen(
+                        allSections: sections,
+                      ),
                     ),
                   );
                 },
@@ -918,8 +925,12 @@ class _TopLawyersSection extends StatelessWidget {
 }
 
 class _TopAdvocatesViewAllScreen extends StatefulWidget {
-  const _TopAdvocatesViewAllScreen({this.selectedSection});
+  const _TopAdvocatesViewAllScreen({
+    required this.allSections,
+    this.selectedSection,
+  });
 
+  final List<_TopAdvocateSectionData> allSections;
   final _TopAdvocateSectionData? selectedSection;
 
   @override
@@ -963,10 +974,15 @@ class _TopAdvocatesViewAllScreenState
               CircleAvatar(
                 radius: 40 / 2,
                 backgroundColor: _bgColor,
-                child: Text(
-                  lawyer.initials,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                ),
+                backgroundImage: lawyer.profileImageBytes != null
+                    ? MemoryImage(lawyer.profileImageBytes!)
+                    : null,
+                child: lawyer.profileImageBytes == null
+                    ? Text(
+                        lawyer.initials,
+                        style: const TextStyle(color: Colors.white, fontSize: 18),
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1057,7 +1073,7 @@ class _TopAdvocatesViewAllScreenState
   @override
   Widget build(BuildContext context) {
     final sections = widget.selectedSection == null
-        ? _topAdvocateSections
+        ? widget.allSections
         : <_TopAdvocateSectionData>[widget.selectedSection!];
 
     return Scaffold(
@@ -1350,119 +1366,6 @@ class LawLinkAiChatScreen extends StatelessWidget {
   }
 }
 
-class _NotificationsScreen extends StatelessWidget {
-  const _NotificationsScreen({required this.notifications});
-
-  final List<_NotificationData> notifications;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _surfaceColor,
-      appBar: AppBar(
-        backgroundColor: _bgColor,
-        title: const Text(
-          'Notifications',
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-        itemCount: notifications.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final item = notifications[index];
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: item.isAlert
-                    ? const Color(0xFFFFD8CF)
-                    : const Color(0xFFE5E8EF),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: item.isAlert
-                        ? const Color(0xFFFFEEE9)
-                        : const Color(0xFFEFF4FF),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    item.isAlert ? Icons.warning_amber_rounded : Icons.info,
-                    color: item.isAlert
-                        ? const Color(0xFFE6653C)
-                        : const Color(0xFF3A86FF),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.title,
-                              style: TextStyle(
-                                color: _primaryText,
-                                fontSize: 14,
-                                fontWeight: item.isRead
-                                    ? FontWeight.w600
-                                    : FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          if (item.isAlert)
-                            const Text(
-                              'ALERT',
-                              style: TextStyle(
-                                color: _alertColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.message,
-                        style: const TextStyle(
-                          color: _mutedText,
-                          fontSize: 13,
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item.time,
-                        style: const TextStyle(
-                          color: Color(0xFF9098A8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _CategoryData {
   const _CategoryData({required this.label, required this.icon});
 
@@ -1472,6 +1375,7 @@ class _CategoryData {
 
 class _LawyerData {
   const _LawyerData({
+    required this.id,
     required this.name,
     required this.specialization,
     required this.years,
@@ -1479,8 +1383,13 @@ class _LawyerData {
     required this.rating,
     required this.reviews,
     required this.initials,
+    required this.city,
+    required this.bio,
+    required this.paymentMethods,
+    this.profileImageBytes,
   });
 
+  final String id;
   final String name;
   final String specialization;
   final String years;
@@ -1488,6 +1397,10 @@ class _LawyerData {
   final double rating;
   final int reviews;
   final String initials;
+  final String city;
+  final String bio;
+  final List<String> paymentMethods;
+  final Uint8List? profileImageBytes;
 }
 
 class _TopAdvocateSectionData {
@@ -1507,36 +1420,4 @@ class _AppointmentData {
   final String name;
   final String dateTime;
   final String status;
-}
-
-class _NotificationData {
-  const _NotificationData({
-    required this.title,
-    required this.message,
-    required this.time,
-    required this.isAlert,
-    required this.isRead,
-  });
-
-  final String title;
-  final String message;
-  final String time;
-  final bool isAlert;
-  final bool isRead;
-
-  _NotificationData copyWith({
-    String? title,
-    String? message,
-    String? time,
-    bool? isAlert,
-    bool? isRead,
-  }) {
-    return _NotificationData(
-      title: title ?? this.title,
-      message: message ?? this.message,
-      time: time ?? this.time,
-      isAlert: isAlert ?? this.isAlert,
-      isRead: isRead ?? this.isRead,
-    );
-  }
 }

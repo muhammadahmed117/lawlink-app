@@ -1,0 +1,34 @@
+{
+	"flutter": {
+		"platforms": {
+			"android": {
+				"default": {
+					"projectId": "lawlink-ahsaan-project-2026",
+					"appId": "1:513598221273:android:7a8736df7c24b4fca4c7c8",
+					"fileOutput": "android/app/google-services.json"
+				}
+			},
+			"dart": {
+				"lib/firebase_options.dart": {
+					"projectId": "lawlink-ahsaan-project-2026",
+					"configurations": {
+						"android": "1:513598221273:android:7a8736df7c24b4fca4c7c8",
+						"ios": "1:513598221273:ios:edc47ba9ef24520ea4c7c8",
+						"macos": "1:513598221273:ios:edc47ba9ef24520ea4c7c8",
+						"web": "1:513598221273:web:3951709f4bfeda2ba4c7c8",
+						"windows": "1:513598221273:web:d33ab2516debe1e8a4c7c8"
+					}
+				}
+			}
+		}
+	},
+	"firestore": {
+		"rules": "firestore.rules"
+	},
+	"functions": {
+		"source": "functions"
+	},
+	"storage": {
+		"rules": "storage.rules"
+	}
+}

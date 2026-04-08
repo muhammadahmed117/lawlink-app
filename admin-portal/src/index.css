@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, Roboto, 'Segoe UI', sans-serif;
+  color: #0f172a;
+}
+
+body {
+  margin: 0;
+  background: #f6f8fc;
+}
+
+* {
+  box-sizing: border-box;
+}

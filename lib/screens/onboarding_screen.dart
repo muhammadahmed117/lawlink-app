@@ -75,12 +75,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        page.icon,
-                        size: 100,
-                        color: theme.primaryColor,
-                      ),
-                      const SizedBox(height: 40),
+                      Icon(page.icon, size: 34, color: Colors.white70),
+                      const SizedBox(height: 20),
                       Text(
                         page.headline,
                         style: theme.textTheme.displayLarge,
