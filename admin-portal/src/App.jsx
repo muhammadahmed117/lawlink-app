@@ -410,7 +410,7 @@ function App() {
     const q = complaintSearch.trim().toLowerCase();
     if (!q) return complaints;
     return complaints.filter((item) => {
-      const text = `${item.id || ''} ${item.title || ''} ${item.client_id || ''} ${item.lawyer_id || ''} ${item.appointment_id || ''} ${item.status || ''}`.toLowerCase();
+      const text = `${item.id || ''} ${item.title || ''} ${item.client_id || ''} ${item.lawyer_id || ''} ${item.appointment_id || ''} ${item.transaction_id || ''} ${item.complaint_status || ''} ${item.rating || ''} ${item.status || ''}`.toLowerCase();
       return text.includes(q);
     });
   }, [complaints, complaintSearch]);
@@ -1075,6 +1075,7 @@ function App() {
                     <th className="px-4 py-3">Name</th>
                     <th className="px-4 py-3">Email</th>
                     <th className="px-4 py-3">Specialization</th>
+                    <th className="px-4 py-3">Rating</th>
                     <th className="px-4 py-3">Verification</th>
                     <th className="px-4 py-3">Action</th>
                     <th className="px-4 py-3">Detail</th>
@@ -1083,7 +1084,7 @@ function App() {
                 <tbody>
                   {filteredLawyers.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-slate-500" colSpan={6}>No lawyers found.</td>
+                      <td className="px-4 py-4 text-slate-500" colSpan={7}>No lawyers found.</td>
                     </tr>
                   ) : null}
                   {filteredLawyers.map((item) => (
@@ -1091,6 +1092,7 @@ function App() {
                       <td className="px-4 py-3 font-semibold text-slate-800">{item.name || 'N/A'}</td>
                       <td className="px-4 py-3 text-slate-600">{item.email || 'N/A'}</td>
                       <td className="px-4 py-3 text-slate-600">{item.category || item.specialization || 'General Law'}</td>
+                      <td className="px-4 py-3 text-slate-600">{Number(item.rating || 0).toFixed(1)} ({item.reviewsCount || item.reviews || 0})</td>
                       <td className="px-4 py-3 text-slate-600">{item.isVerified ? 'Verified' : ((item.verification_status || item.approvalStatus || 'pending').toString())}</td>
                       <td className="px-4 py-3">
                         {item.isSuspended ? (
@@ -1269,20 +1271,24 @@ function App() {
                     <th className="px-4 py-3">Complaint ID</th>
                     <th className="px-4 py-3">Client ID</th>
                     <th className="px-4 py-3">Appointment ID</th>
+                    <th className="px-4 py-3">Rating</th>
+                    <th className="px-4 py-3">Complaint Status</th>
                     <th className="px-4 py-3">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {complaintsWithClient.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-slate-500" colSpan={4}>No client complaints found.</td>
+                      <td className="px-4 py-4 text-slate-500" colSpan={6}>No client complaints found.</td>
                     </tr>
                   ) : null}
                   {complaintsWithClient.map((item) => (
                     <tr key={`c-${item.id}`} className="border-t border-slate-100">
                       <td className="px-4 py-3 font-semibold text-slate-800">{item.id}</td>
                       <td className="px-4 py-3 text-slate-600">{item.client_id || 'N/A'}</td>
-                      <td className="px-4 py-3 text-slate-600">{item.appointment_id || 'N/A'}</td>
+                      <td className="px-4 py-3 text-slate-600">{item.appointment_id || item.transaction_id || 'N/A'}</td>
+                      <td className="px-4 py-3 text-slate-600">{item.rating || 'N/A'}</td>
+                      <td className="px-4 py-3 text-slate-600">{item.complaint_status || item.type || 'general'}</td>
                       <td className="px-4 py-3 text-slate-600">{item.status || 'open'}</td>
                     </tr>
                   ))}
